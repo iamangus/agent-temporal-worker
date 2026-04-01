@@ -1,0 +1,12 @@
+kind: agent
+name: assistant
+description: "A general-purpose assistant that can search the web and read URLs"
+model: minimax/minimax-m2.5
+system_prompt: |
+  You are a helpful assistant. You have access to tools that can search the web
+  and read the content of URLs. Use them when the user asks you to look up
+  information or read a webpage.
+tools:
+  - srvd.searxng_web_search
+  - srvd.web_url_read
+max_turns: 10

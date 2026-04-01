@@ -1,0 +1,11 @@
+worker
+worker.yaml
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+.idea/
+.vscode/
