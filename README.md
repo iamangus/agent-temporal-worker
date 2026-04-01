@@ -72,6 +72,11 @@ docker run \
 ```yaml
 definitions_dir: "./definitions"
 
+temporal:
+  host_port: "localhost:7233"
+  namespace: "default"
+  # api_key: "${TEMPORAL_API_KEY}"
+
 llm:
   base_url: "https://openrouter.ai/api/v1"
   api_key: "${OPENROUTER_API_KEY}"
@@ -107,9 +112,13 @@ max_turns: 15
 
 ### Environment Variables
 
+All config values that accept `${ENV_VAR}` syntax can use env vars. The most common:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `TEMPORAL_HOST_PORT` | Temporal frontend address | `localhost:7233` |
+| `TEMPORAL_HOST_PORT` | Temporal frontend address (fallback if not in config) | `localhost:7233` |
+| `TEMPORAL_API_KEY` | Temporal API key (fallback if not in config) | — |
+| `OPENROUTER_API_KEY` | LLM API key (fallback if not in config) | — |
 
 ## Project Structure
 

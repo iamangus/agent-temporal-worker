@@ -17,7 +17,4 @@ COPY definitions/ /data/definitions/
 
 WORKDIR /data
 
-# TEMPORAL_HOST_PORT — address of the Temporal frontend (default: localhost:7233)
-ENV TEMPORAL_HOST_PORT=localhost:7233
-
 ENTRYPOINT ["worker"]

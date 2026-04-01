@@ -11,8 +11,16 @@ import (
 // SystemConfig is the top-level configuration for the agent-temporal-worker daemon.
 type SystemConfig struct {
 	DefinitionsDir string                   `yaml:"definitions_dir"`
+	Temporal       TemporalConf             `yaml:"temporal"`
 	LLM            LLMConf                  `yaml:"llm"`
 	MCPServers     []mcpclient.ServerConfig `yaml:"mcp_servers"`
+}
+
+// TemporalConf configures the connection to the Temporal server.
+type TemporalConf struct {
+	HostPort  string `yaml:"host_port"`
+	Namespace string `yaml:"namespace"`
+	APIKey    string `yaml:"api_key"`
 }
 
 // LLMConf configures the OpenAI-compatible LLM provider.
@@ -27,6 +35,10 @@ type LLMConf struct {
 func DefaultSystem() *SystemConfig {
 	return &SystemConfig{
 		DefinitionsDir: "./definitions",
+		Temporal: TemporalConf{
+			HostPort:  "localhost:7233",
+			Namespace: "default",
+		},
 		LLM: LLMConf{
 			BaseURL:      "https://openrouter.ai/api/v1",
 			APIKey:       os.Getenv("OPENROUTER_API_KEY"),
@@ -54,6 +66,23 @@ func LoadSystem(path string) (*SystemConfig, error) {
 
 	if cfg.LLM.APIKey == "" {
 		cfg.LLM.APIKey = os.Getenv("OPENROUTER_API_KEY")
+	}
+
+	cfg.Temporal.HostPort = expandEnvVar(cfg.Temporal.HostPort)
+	cfg.Temporal.Namespace = expandEnvVar(cfg.Temporal.Namespace)
+	cfg.Temporal.APIKey = expandEnvVar(cfg.Temporal.APIKey)
+
+	if cfg.Temporal.HostPort == "" {
+		cfg.Temporal.HostPort = os.Getenv("TEMPORAL_HOST_PORT")
+	}
+	if cfg.Temporal.HostPort == "" {
+		cfg.Temporal.HostPort = "localhost:7233"
+	}
+	if cfg.Temporal.Namespace == "" {
+		cfg.Temporal.Namespace = "default"
+	}
+	if cfg.Temporal.APIKey == "" {
+		cfg.Temporal.APIKey = os.Getenv("TEMPORAL_API_KEY")
 	}
 
 	for k, v := range cfg.LLM.Headers {

@@ -4,6 +4,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 
+	"github.com/angoo/agent-temporal-worker/internal/config"
 	"github.com/angoo/agent-temporal-worker/internal/llm"
 	"github.com/angoo/agent-temporal-worker/internal/mcpclient"
 	"github.com/angoo/agent-temporal-worker/internal/registry"
@@ -18,10 +19,16 @@ type Worker struct {
 
 // NewWorker creates a Temporal client, builds the Activities instance, and
 // registers the RunAgentWorkflow and all activities on the agent-temporal-worker task queue.
-func NewWorker(temporalHostPort string, reg *registry.Registry, pool *mcpclient.Pool, llmClient llm.Client) (*Worker, error) {
-	c, err := client.Dial(client.Options{
-		HostPort: temporalHostPort,
-	})
+func NewWorker(tcfg config.TemporalConf, reg *registry.Registry, pool *mcpclient.Pool, llmClient llm.Client) (*Worker, error) {
+	opts := client.Options{
+		HostPort:  tcfg.HostPort,
+		Namespace: tcfg.Namespace,
+	}
+	if tcfg.APIKey != "" {
+		opts.Credentials = client.NewAPIKeyStaticCredentials(tcfg.APIKey)
+	}
+
+	c, err := client.Dial(opts)
 	if err != nil {
 		return nil, err
 	}

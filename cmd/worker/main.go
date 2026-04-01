@@ -24,6 +24,8 @@ func main() {
 	}
 	slog.Info("loaded system config",
 		"definitions_dir", cfg.DefinitionsDir,
+		"temporal_host", cfg.Temporal.HostPort,
+		"temporal_namespace", cfg.Temporal.Namespace,
 		"mcp_servers", len(cfg.MCPServers),
 	)
 
@@ -63,14 +65,8 @@ func main() {
 	}
 	defer loader.Close()
 
-	// Determine Temporal host:port. Defaults to localhost:7233.
-	temporalHostPort := os.Getenv("TEMPORAL_HOST_PORT")
-	if temporalHostPort == "" {
-		temporalHostPort = "localhost:7233"
-	}
-
 	// Create and start the Temporal worker.
-	w, err := agentworker.NewWorker(temporalHostPort, reg, pool, llmClient)
+	w, err := agentworker.NewWorker(cfg.Temporal, reg, pool, llmClient)
 	if err != nil {
 		slog.Error("failed to create Temporal worker", "error", err)
 		pool.Close()
@@ -80,7 +76,8 @@ func main() {
 
 	slog.Info("starting Temporal worker",
 		"task_queue", agentworker.TaskQueue,
-		"temporal", temporalHostPort,
+		"temporal", cfg.Temporal.HostPort,
+		"namespace", cfg.Temporal.Namespace,
 	)
 
 	// Start blocks until interrupted (SIGINT/SIGTERM via worker.InterruptCh).
