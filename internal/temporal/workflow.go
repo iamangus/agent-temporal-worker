@@ -9,10 +9,8 @@ import (
 	"go.temporal.io/sdk/workflow"
 
 	"github.com/angoo/agent-temporal-worker/internal/llm"
-	"github.com/angoo/agent-temporal-worker/internal/mcpclient"
 )
 
-// defaultActivityOptions are the default retry/timeout settings for activities.
 var defaultActivityOptions = workflow.ActivityOptions{
 	StartToCloseTimeout: 2 * time.Minute,
 	RetryPolicy: &temporal.RetryPolicy{
@@ -20,7 +18,6 @@ var defaultActivityOptions = workflow.ActivityOptions{
 	},
 }
 
-// llmActivityOptions are more generous for LLM calls which can be slow.
 var llmActivityOptions = workflow.ActivityOptions{
 	StartToCloseTimeout: 5 * time.Minute,
 	RetryPolicy: &temporal.RetryPolicy{
@@ -32,10 +29,6 @@ var llmActivityOptions = workflow.ActivityOptions{
 	},
 }
 
-// RunAgentWorkflow is the main Temporal workflow for running an agent.
-// It mirrors the multi-turn LLM conversation loop previously in agent.Runtime.RunWithHistory,
-// but with each LLM call and tool call executed as activities, making the
-// entire run durable and replayable.
 func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResult, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Info("starting agent workflow", "agent", params.AgentName)
@@ -52,55 +45,32 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 	}
 	def := resolveResult.Definition
 
-	// 2. Connect to any ephemeral MCP servers and discover their tools.
-	var ephemeralTools []EphemeralTool
-	if len(params.MCPServers) > 0 {
-		var ephResult ConnectEphemeralResult
-		err = workflow.ExecuteActivity(actCtx, (*Activities).ConnectEphemeralActivity, ConnectEphemeralInput{
-			Servers: params.MCPServers,
-		}).Get(ctx, &ephResult)
-		if err != nil {
-			return RunAgentResult{}, fmt.Errorf("connect ephemeral servers: %w", err)
-		}
-		ephemeralTools = ephResult.Tools
-	}
-
-	// 3. Build the tool set (LLM tool definitions + routing table).
+	// 2. Build the tool set (LLM tool definitions + routing table).
 	var toolDefsResult BuildToolDefsResult
 	err = workflow.ExecuteActivity(actCtx, (*Activities).BuildToolDefsActivity, BuildToolDefsInput{
-		Definition:     def,
-		EphemeralTools: ephemeralTools,
+		Definition: def,
 	}).Get(ctx, &toolDefsResult)
 	if err != nil {
 		return RunAgentResult{}, fmt.Errorf("build tool defs: %w", err)
 	}
 
-	// Build a route lookup map for fast dispatch.
 	routeByLLMName := make(map[string]ToolRoute, len(toolDefsResult.ToolRoutes))
 	for _, r := range toolDefsResult.ToolRoutes {
 		routeByLLMName[r.LLMName] = r
 	}
 
-	// Build a lookup map for ephemeral server configs (needed when dispatching ephemeral tools).
-	ephemeralServerByName := make(map[string]mcpclient.ServerConfig, len(params.MCPServers))
-	for _, srv := range params.MCPServers {
-		ephemeralServerByName[srv.Name] = srv
-	}
-
-	// 4. Determine structured output / response format.
+	// 3. Determine structured output / response format.
 	so := params.ResponseSchema
 	if so == nil {
 		so = def.StructuredOutput
 	}
 
-	// supportsSchemaValidation is queried once as an activity so the result
-	// is durably recorded in the workflow history and replayed deterministically.
 	var supportsSchema bool
 	if err = workflow.ExecuteActivity(actCtx, (*Activities).LLMSupportsSchemaActivity).Get(ctx, &supportsSchema); err != nil {
 		return RunAgentResult{}, fmt.Errorf("query schema support: %w", err)
 	}
 
-	// 5. Build initial messages: system prompt + history + user message.
+	// 4. Build initial messages: system prompt + history + user message.
 	systemPrompt := def.SystemPrompt
 	if so != nil && !supportsSchema {
 		systemPrompt += fmt.Sprintf(
@@ -121,11 +91,10 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 
 	llmCtx := workflow.WithActivityOptions(ctx, llmActivityOptions)
 
-	// 6. Multi-turn loop.
+	// 5. Multi-turn loop.
 	for turn := 0; turn < maxTurns; turn++ {
 		logger.Info("agent turn", "agent", def.Name, "turn", turn+1)
 
-		// Build the LLM request.
 		req := &llm.ChatRequest{
 			Model:    def.Model,
 			Messages: messages,
@@ -148,7 +117,6 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 			req.ResponseFormat = &llm.ResponseFormat{Type: "json_object"}
 		}
 
-		// Call the LLM.
 		var llmResult LLMChatResult
 		err = workflow.ExecuteActivity(llmCtx, (*Activities).LLMChatActivity, LLMChatInput{Request: req}).
 			Get(ctx, &llmResult)
@@ -161,7 +129,6 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 			return RunAgentResult{}, fmt.Errorf("no choices in LLM response on turn %d", turn+1)
 		}
 
-		// Merge all index-0 choices (some providers split text and tool_calls).
 		var assistantMsg llm.Message
 		for _, c := range resp.Choices {
 			if c.Index != 0 {
@@ -177,14 +144,12 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 		}
 		messages = append(messages, assistantMsg)
 
-		// No tool calls — we have a final response.
 		if len(assistantMsg.ToolCalls) == 0 {
 			content, _ := assistantMsg.Content.(string)
 			if so != nil || def.ForceJSON {
 				content = llm.StripCodeFences(content)
 			}
 
-			// Validate or retry if schema validation fails.
 			if so != nil {
 				if verr := llm.ValidateAgainstSchema(content, so.Schema); verr != nil {
 					logger.Warn("LLM response failed schema validation, retrying",
@@ -225,15 +190,12 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 			}
 
 			logger.Info("agent workflow completed", "agent", def.Name, "turns", turn+1)
-			// Return history without the system prompt.
 			return RunAgentResult{
 				Response: content,
 				History:  messages[1:],
 			}, nil
 		}
 
-		// Dispatch tool calls.
-		// Parallel execution uses workflow.Go goroutines (deterministic).
 		type toolCallOutcome struct {
 			toolCallID string
 			content    string
@@ -242,14 +204,12 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 		outcomes := make([]toolCallOutcome, len(assistantMsg.ToolCalls))
 		errors := make([]error, len(assistantMsg.ToolCalls))
 
-		// Determine concurrency limit.
 		maxConcurrent := def.MaxConcurrentTools
-		sem := make(chan struct{}, func() int {
-			if maxConcurrent > 0 {
-				return maxConcurrent
-			}
-			return len(assistantMsg.ToolCalls) // unlimited
-		}())
+		concurrency := maxConcurrent
+		if concurrency == 0 {
+			concurrency = len(assistantMsg.ToolCalls)
+		}
+		sem := make(chan struct{}, concurrency)
 
 		wg := workflow.NewWaitGroup(ctx)
 		for i, tc := range assistantMsg.ToolCalls {
@@ -260,14 +220,13 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 				sem <- struct{}{}
 				defer func() { <-sem }()
 
-				content, err := dispatchToolCall(ctx, tc, routeByLLMName, ephemeralServerByName, params)
+				content, err := dispatchToolCall(ctx, tc, routeByLLMName, params)
 				outcomes[i] = toolCallOutcome{toolCallID: tc.ID, content: content}
 				errors[i] = err
 			})
 		}
 		wg.Wait(ctx)
 
-		// Append tool results to the conversation.
 		for i, outcome := range outcomes {
 			content := outcome.content
 			if errors[i] != nil {
@@ -285,12 +244,10 @@ func RunAgentWorkflow(ctx workflow.Context, params RunAgentParams) (RunAgentResu
 	return RunAgentResult{}, fmt.Errorf("agent %s exceeded max turns (%d)", def.Name, maxTurns)
 }
 
-// dispatchToolCall routes a single tool call to the appropriate activity or child workflow.
 func dispatchToolCall(
 	ctx workflow.Context,
 	tc llm.ToolCall,
 	routeByLLMName map[string]ToolRoute,
-	ephemeralServerByName map[string]mcpclient.ServerConfig,
 	params RunAgentParams,
 ) (string, error) {
 	logger := workflow.GetLogger(ctx)
@@ -302,7 +259,6 @@ func dispatchToolCall(
 
 	switch route.Kind {
 	case ToolKindAgent:
-		// Sub-agent: launch as a child workflow.
 		var agentInput struct {
 			Message string `json:"message"`
 		}
@@ -318,7 +274,6 @@ func dispatchToolCall(
 		err := workflow.ExecuteChildWorkflow(childCtx, RunAgentWorkflow, RunAgentParams{
 			AgentName: route.AgentName,
 			Message:   agentInput.Message,
-			// Sub-agents do not inherit history or ephemeral servers from the parent.
 		}).Get(ctx, &childResult)
 		if err != nil {
 			return "", fmt.Errorf("sub-agent %s failed: %w", route.AgentName, err)
@@ -326,7 +281,6 @@ func dispatchToolCall(
 		return childResult.Response, nil
 
 	case ToolKindMCP:
-		// MCP tool via the global pool.
 		var args map[string]any
 		if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
 			return "", fmt.Errorf("parse tool arguments: %w", err)
@@ -345,32 +299,6 @@ func dispatchToolCall(
 		}
 		if result.IsError {
 			return "", fmt.Errorf("tool returned error: %s", result.Content)
-		}
-		return result.Content, nil
-
-	case ToolKindEphemeral:
-		// Ephemeral MCP tool — open a fresh connection in the activity.
-		srv, ok := ephemeralServerByName[route.ServerName]
-		if !ok {
-			return "", fmt.Errorf("ephemeral server %q not found in params", route.ServerName)
-		}
-		var args map[string]any
-		if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
-			return "", fmt.Errorf("parse ephemeral tool arguments: %w", err)
-		}
-
-		actCtx := workflow.WithActivityOptions(ctx, defaultActivityOptions)
-		var result CallToolResult
-		err := workflow.ExecuteActivity(actCtx, (*Activities).CallEphemeralToolActivity, CallEphemeralToolInput{
-			Server:    srv,
-			ToolName:  route.ToolName,
-			Arguments: args,
-		}).Get(ctx, &result)
-		if err != nil {
-			return "", err
-		}
-		if result.IsError {
-			return "", fmt.Errorf("ephemeral tool returned error: %s", result.Content)
 		}
 		return result.Content, nil
 

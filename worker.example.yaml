@@ -1,5 +1,3 @@
-definitions_dir: "./definitions"
-
 temporal:
   host_port: "localhost:7233"
   namespace: "default"
@@ -14,44 +12,6 @@ llm:
     X-Title: "agent-temporal-worker"
   # schema_validation: true
 
-# Other provider examples:
-#
-# OpenAI directly:
-#   llm:
-#     base_url: "https://api.openai.com/v1"
-#     api_key: "${OPENAI_API_KEY}"
-#     default_model: "gpt-4o"
-#
-# Ollama (local):
-#   llm:
-#     base_url: "http://localhost:11434/v1"
-#     api_key: "ollama"
-#     default_model: "llama3"
-#
-# Azure OpenAI:
-#   llm:
-#     base_url: "https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT"
-#     api_key: "${AZURE_OPENAI_API_KEY}"
-#     default_model: "gpt-4o"
-#     headers:
-#       api-version: "2024-02-01"
-#
-# Together AI:
-#   llm:
-#     base_url: "https://api.together.xyz/v1"
-#     api_key: "${TOGETHER_API_KEY}"
-#     default_model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
-
-mcp_servers:
-  - name: "srvd"
-    url: "https://mcp.srvd.dev/mcp"
-    transport: "streamable-http"
-
-  # - name: "filesystem"
-  #   url: "http://localhost:4000/sse"
-  #   transport: "sse"
-  # - name: "my-auth-server"
-  #   url: "https://mcp.example.com/mcp"
-  #   transport: "streamable-http"
-  #   headers:
-  #     Authorization: "Bearer ${MY_API_TOKEN}"
+orchestrator:
+  url: "http://localhost:3000"
+  api_key: "${ORCHESTRATOR_API_KEY}"

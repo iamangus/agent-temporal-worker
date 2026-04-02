@@ -4,26 +4,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/angoo/agent-temporal-worker/internal/mcpclient"
 	"gopkg.in/yaml.v3"
 )
 
-// SystemConfig is the top-level configuration for the agent-temporal-worker daemon.
 type SystemConfig struct {
-	DefinitionsDir string                   `yaml:"definitions_dir"`
-	Temporal       TemporalConf             `yaml:"temporal"`
-	LLM            LLMConf                  `yaml:"llm"`
-	MCPServers     []mcpclient.ServerConfig `yaml:"mcp_servers"`
+	Temporal     TemporalConf     `yaml:"temporal"`
+	LLM          LLMConf          `yaml:"llm"`
+	Orchestrator OrchestratorConf `yaml:"orchestrator"`
 }
 
-// TemporalConf configures the connection to the Temporal server.
 type TemporalConf struct {
 	HostPort  string `yaml:"host_port"`
 	Namespace string `yaml:"namespace"`
 	APIKey    string `yaml:"api_key"`
 }
 
-// LLMConf configures the OpenAI-compatible LLM provider.
 type LLMConf struct {
 	BaseURL          string            `yaml:"base_url"`
 	APIKey           string            `yaml:"api_key"`
@@ -32,9 +27,13 @@ type LLMConf struct {
 	SchemaValidation bool              `yaml:"schema_validation"`
 }
 
+type OrchestratorConf struct {
+	URL    string `yaml:"url"`
+	APIKey string `yaml:"api_key"`
+}
+
 func DefaultSystem() *SystemConfig {
 	return &SystemConfig{
-		DefinitionsDir: "./definitions",
 		Temporal: TemporalConf{
 			HostPort:  "localhost:7233",
 			Namespace: "default",
@@ -47,6 +46,9 @@ func DefaultSystem() *SystemConfig {
 				"HTTP-Referer": "https://github.com/angoo/agent-temporal-worker",
 				"X-Title":      "agent-temporal-worker",
 			},
+		},
+		Orchestrator: OrchestratorConf{
+			URL: "http://localhost:3000",
 		},
 	}
 }
@@ -85,14 +87,11 @@ func LoadSystem(path string) (*SystemConfig, error) {
 		cfg.Temporal.APIKey = os.Getenv("TEMPORAL_API_KEY")
 	}
 
+	cfg.Orchestrator.URL = expandEnvVar(cfg.Orchestrator.URL)
+	cfg.Orchestrator.APIKey = expandEnvVar(cfg.Orchestrator.APIKey)
+
 	for k, v := range cfg.LLM.Headers {
 		cfg.LLM.Headers[k] = expandEnvVar(v)
-	}
-
-	for i := range cfg.MCPServers {
-		for k, v := range cfg.MCPServers[i].Headers {
-			cfg.MCPServers[i].Headers[k] = expandEnvVar(v)
-		}
 	}
 
 	return cfg, nil
