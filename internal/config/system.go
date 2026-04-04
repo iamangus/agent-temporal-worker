@@ -64,8 +64,25 @@ func LoadSystem(path string) (*SystemConfig, error) {
 		return nil, err
 	}
 
+	cfg.LLM.BaseURL = expandEnvVar(cfg.LLM.BaseURL)
+	cfg.LLM.DefaultModel = expandEnvVar(cfg.LLM.DefaultModel)
 	cfg.LLM.APIKey = expandEnvVar(cfg.LLM.APIKey)
 
+	if cfg.LLM.BaseURL == "" {
+		cfg.LLM.BaseURL = os.Getenv("LLM_BASE_URL")
+	}
+	if cfg.LLM.BaseURL == "" {
+		cfg.LLM.BaseURL = "https://openrouter.ai/api/v1"
+	}
+	if cfg.LLM.DefaultModel == "" {
+		cfg.LLM.DefaultModel = os.Getenv("LLM_DEFAULT_MODEL")
+	}
+	if cfg.LLM.DefaultModel == "" {
+		cfg.LLM.DefaultModel = "openai/gpt-4o"
+	}
+	if cfg.LLM.APIKey == "" {
+		cfg.LLM.APIKey = os.Getenv("LLM_API_KEY")
+	}
 	if cfg.LLM.APIKey == "" {
 		cfg.LLM.APIKey = os.Getenv("OPENROUTER_API_KEY")
 	}
@@ -89,6 +106,16 @@ func LoadSystem(path string) (*SystemConfig, error) {
 
 	cfg.Orchestrator.URL = expandEnvVar(cfg.Orchestrator.URL)
 	cfg.Orchestrator.APIKey = expandEnvVar(cfg.Orchestrator.APIKey)
+
+	if cfg.Orchestrator.URL == "" {
+		cfg.Orchestrator.URL = os.Getenv("ORCHESTRATOR_URL")
+	}
+	if cfg.Orchestrator.URL == "" {
+		cfg.Orchestrator.URL = "http://localhost:3000"
+	}
+	if cfg.Orchestrator.APIKey == "" {
+		cfg.Orchestrator.APIKey = os.Getenv("ORCHESTRATOR_API_KEY")
+	}
 
 	for k, v := range cfg.LLM.Headers {
 		cfg.LLM.Headers[k] = expandEnvVar(v)

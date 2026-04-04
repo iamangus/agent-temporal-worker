@@ -49,7 +49,7 @@ A Temporal worker that runs AI agents defined in YAML. Each agent is backed by a
 ```bash
 go build -o worker ./cmd/worker/
 export TEMPORAL_HOST_PORT="localhost:7233"
-export OPENROUTER_API_KEY="sk-or-..."
+export LLM_API_KEY="sk-or-..."
 ./worker
 ```
 
@@ -59,7 +59,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 docker build -t agentfoundry-worker .
 docker run \
   -e TEMPORAL_HOST_PORT="temporal:7233" \
-  -e OPENROUTER_API_KEY="sk-or-..." \
+  -e LLM_API_KEY="sk-or-..." \
   -v $(pwd)/worker.yaml:/data/worker.yaml \
   -v $(pwd)/definitions:/data/definitions \
   agentfoundry-worker
@@ -112,13 +112,19 @@ max_turns: 15
 
 ### Environment Variables
 
-All config values that accept `${ENV_VAR}` syntax can use env vars. The most common:
+All config values can be set via YAML, `${ENV_VAR}` syntax in YAML, or dedicated env vars. Priority: YAML value > env var in YAML > dedicated env var > default.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `TEMPORAL_HOST_PORT` | Temporal frontend address (fallback if not in config) | `localhost:7233` |
-| `TEMPORAL_API_KEY` | Temporal API key (fallback if not in config) | — |
-| `OPENROUTER_API_KEY` | LLM API key (fallback if not in config) | — |
+| `TEMPORAL_HOST_PORT` | Temporal frontend address | `localhost:7233` |
+| `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
+| `TEMPORAL_API_KEY` | Temporal API key | — |
+| `LLM_BASE_URL` | OpenAI-compatible LLM API base URL | `https://openrouter.ai/api/v1` |
+| `LLM_DEFAULT_MODEL` | Default LLM model | `openai/gpt-4o` |
+| `LLM_API_KEY` | LLM API key | — |
+| `OPENROUTER_API_KEY` | LLM API key (legacy fallback) | — |
+| `ORCHESTRATOR_URL` | agentfoundry backend URL | `http://localhost:3000` |
+| `ORCHESTRATOR_API_KEY` | Orchestrator API key | — |
 
 ## Project Structure
 
