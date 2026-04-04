@@ -4,10 +4,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/angoo/agent-temporal-worker/internal/config"
-	"github.com/angoo/agent-temporal-worker/internal/llm"
-	"github.com/angoo/agent-temporal-worker/internal/orchestrator"
-	agentworker "github.com/angoo/agent-temporal-worker/internal/temporal"
+	"github.com/angoo/agentfoundry-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/llm"
+	"github.com/angoo/agentfoundry-worker/internal/orchestrator"
+	agentworker "github.com/angoo/agentfoundry-worker/internal/temporal"
 )
 
 func main() {

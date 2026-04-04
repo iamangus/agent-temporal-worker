@@ -8,8 +8,8 @@ llm:
   api_key: "${OPENROUTER_API_KEY}"
   default_model: "openai/gpt-4o"
   headers:
-    HTTP-Referer: "https://github.com/angoo/agent-temporal-worker"
-    X-Title: "agent-temporal-worker"
+    HTTP-Referer: "https://github.com/angoo/agentfoundry-worker"
+    X-Title: "agentfoundry-worker"
   # schema_validation: true
 
 orchestrator:

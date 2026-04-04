@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/angoo/agent-temporal-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/config"
 )
 
 type Config struct {

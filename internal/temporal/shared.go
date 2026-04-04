@@ -1,12 +1,12 @@
 package temporal
 
 import (
-	"github.com/angoo/agent-temporal-worker/internal/config"
-	"github.com/angoo/agent-temporal-worker/internal/llm"
+	"github.com/angoo/agentfoundry-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/llm"
 )
 
 const (
-	TaskQueue    = "agent-temporal-worker"
+	TaskQueue    = "agentfoundry-worker"
 	WorkflowType = "RunAgentWorkflow"
 )
 

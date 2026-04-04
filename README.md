@@ -1,4 +1,4 @@
-# agent-temporal-worker
+# agentfoundry-worker
 
 A Temporal worker that runs AI agents defined in YAML. Each agent is backed by an OpenAI-compatible LLM API and can invoke tools from external MCP servers. The multi-turn conversation loop runs as a durable Temporal workflow, making every LLM call and tool invocation replayable and resilient to failures.
 
@@ -7,7 +7,7 @@ A Temporal worker that runs AI agents defined in YAML. Each agent is backed by a
 ```
                      ┌──────────────────────────────────────┐
                      │        Temporal Frontend             │
-                     │        (task queue: agent-temporal-worker)
+                     │        (task queue: agentfoundry-worker)
                      └──────────────┬───────────────────────┘
                                     │
                      ┌──────────────▼───────────────────────┐
@@ -56,13 +56,13 @@ export OPENROUTER_API_KEY="sk-or-..."
 ### Docker
 
 ```bash
-docker build -t agent-temporal-worker .
+docker build -t agentfoundry-worker .
 docker run \
   -e TEMPORAL_HOST_PORT="temporal:7233" \
   -e OPENROUTER_API_KEY="sk-or-..." \
   -v $(pwd)/worker.yaml:/data/worker.yaml \
   -v $(pwd)/definitions:/data/definitions \
-  agent-temporal-worker
+  agentfoundry-worker
 ```
 
 ## Configuration
@@ -82,8 +82,8 @@ llm:
   api_key: "${OPENROUTER_API_KEY}"
   default_model: "openai/gpt-4o"
   headers:
-    HTTP-Referer: "https://github.com/angoo/agent-temporal-worker"
-    X-Title: "agent-temporal-worker"
+    HTTP-Referer: "https://github.com/angoo/agentfoundry-worker"
+    X-Title: "agentfoundry-worker"
 
 mcp_servers:
   - name: "srvd"
@@ -123,7 +123,7 @@ All config values that accept `${ENV_VAR}` syntax can use env vars. The most com
 ## Project Structure
 
 ```
-agent-temporal-worker/
+agentfoundry-worker/
 ├── cmd/worker/main.go           # Worker entrypoint
 ├── internal/
 │   ├── config/                  # System config, agent definitions, YAML loader

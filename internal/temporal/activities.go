@@ -8,9 +8,9 @@ import (
 
 	"go.temporal.io/sdk/activity"
 
-	"github.com/angoo/agent-temporal-worker/internal/config"
-	"github.com/angoo/agent-temporal-worker/internal/llm"
-	"github.com/angoo/agent-temporal-worker/internal/orchestrator"
+	"github.com/angoo/agentfoundry-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/llm"
+	"github.com/angoo/agentfoundry-worker/internal/orchestrator"
 )
 
 type Activities struct {

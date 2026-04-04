@@ -8,7 +8,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 
-	"github.com/angoo/agent-temporal-worker/internal/llm"
+	"github.com/angoo/agentfoundry-worker/internal/llm"
 )
 
 var defaultActivityOptions = workflow.ActivityOptions{

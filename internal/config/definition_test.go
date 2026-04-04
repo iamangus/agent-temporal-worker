@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/angoo/agent-temporal-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/config"
 )
 
 func TestStructuredOutput_YAMLRoundTrip(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/angoo/agent-temporal-worker
+module github.com/angoo/agentfoundry-worker
 
 go 1.25.3
 

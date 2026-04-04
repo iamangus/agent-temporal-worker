@@ -4,9 +4,9 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 
-	"github.com/angoo/agent-temporal-worker/internal/config"
-	"github.com/angoo/agent-temporal-worker/internal/llm"
-	"github.com/angoo/agent-temporal-worker/internal/orchestrator"
+	"github.com/angoo/agentfoundry-worker/internal/config"
+	"github.com/angoo/agentfoundry-worker/internal/llm"
+	"github.com/angoo/agentfoundry-worker/internal/orchestrator"
 )
 
 type Worker struct {

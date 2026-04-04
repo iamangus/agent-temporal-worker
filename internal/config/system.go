@@ -43,8 +43,8 @@ func DefaultSystem() *SystemConfig {
 			APIKey:       os.Getenv("OPENROUTER_API_KEY"),
 			DefaultModel: "openai/gpt-4o",
 			Headers: map[string]string{
-				"HTTP-Referer": "https://github.com/angoo/agent-temporal-worker",
-				"X-Title":      "agent-temporal-worker",
+				"HTTP-Referer": "https://github.com/angoo/agentfoundry-worker",
+				"X-Title":      "agentfoundry-worker",
 			},
 		},
 		Orchestrator: OrchestratorConf{
