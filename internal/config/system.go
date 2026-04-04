@@ -33,22 +33,51 @@ type OrchestratorConf struct {
 }
 
 func DefaultSystem() *SystemConfig {
+	hostPort := os.Getenv("TEMPORAL_HOST_PORT")
+	if hostPort == "" {
+		hostPort = "localhost:7233"
+	}
+	ns := os.Getenv("TEMPORAL_NAMESPACE")
+	if ns == "" {
+		ns = "default"
+	}
+
+	baseURL := os.Getenv("LLM_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://openrouter.ai/api/v1"
+	}
+	defaultModel := os.Getenv("LLM_DEFAULT_MODEL")
+	if defaultModel == "" {
+		defaultModel = "openai/gpt-4o"
+	}
+	apiKey := os.Getenv("LLM_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("OPENROUTER_API_KEY")
+	}
+
+	orchURL := os.Getenv("ORCHESTRATOR_URL")
+	if orchURL == "" {
+		orchURL = "http://localhost:3000"
+	}
+
 	return &SystemConfig{
 		Temporal: TemporalConf{
-			HostPort:  "localhost:7233",
-			Namespace: "default",
+			HostPort:  hostPort,
+			Namespace: ns,
+			APIKey:    os.Getenv("TEMPORAL_API_KEY"),
 		},
 		LLM: LLMConf{
-			BaseURL:      "https://openrouter.ai/api/v1",
-			APIKey:       os.Getenv("OPENROUTER_API_KEY"),
-			DefaultModel: "openai/gpt-4o",
+			BaseURL:      baseURL,
+			DefaultModel: defaultModel,
+			APIKey:       apiKey,
 			Headers: map[string]string{
 				"HTTP-Referer": "https://github.com/angoo/agentfoundry-worker",
 				"X-Title":      "agentfoundry-worker",
 			},
 		},
 		Orchestrator: OrchestratorConf{
-			URL: "http://localhost:3000",
+			URL:    orchURL,
+			APIKey: os.Getenv("ORCHESTRATOR_API_KEY"),
 		},
 	}
 }
