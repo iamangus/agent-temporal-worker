@@ -41,7 +41,7 @@ func (a *Activities) CallToolActivity(ctx context.Context, input CallToolInput) 
 	logger.Info("calling MCP tool", "server", input.ServerName, "tool", input.ToolName)
 
 	if input.StreamID != "" {
-		status := fmt.Sprintf("Running %s.%s...", input.ServerName, input.ToolName)
+		status := fmt.Sprintf("Running %s.%s", input.ServerName, input.ToolName)
 		if perr := a.orchClient.PublishEvent(ctx, input.StreamID, "status", status); perr != nil {
 			logger.Warn("failed to publish status", "stream_id", input.StreamID, "error", perr)
 		}
@@ -64,7 +64,7 @@ func (a *Activities) LLMChatActivity(ctx context.Context, input LLMChatInput) (L
 	var err error
 
 	if input.StreamID != "" {
-		if perr := a.orchClient.PublishEvent(ctx, input.StreamID, "status", "Thinking..."); perr != nil {
+		if perr := a.orchClient.PublishEvent(ctx, input.StreamID, "status", "Thinking"); perr != nil {
 			logger.Warn("failed to publish status", "stream_id", input.StreamID, "error", perr)
 		}
 		var responseStarted bool
